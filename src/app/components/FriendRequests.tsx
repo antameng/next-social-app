@@ -12,7 +12,7 @@ export default function FriendRequests() {
         {/* User */}
         <div className="flex items-center justify-center">
           <div className="">
-            <Image></Image>
+            <Image alt="" src=""></Image>
           </div>
           <div className=""></div>
         </div>
