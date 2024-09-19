@@ -12,3 +12,106 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id                     String          @id
+  username               String          @unique
+  avatar                 String?
+  cover                  String?
+  name                   String?
+  surname                String?
+  description            String?
+  city                   String?
+  school                 String?
+  work                   String?
+  website                String?
+  createAt               DateTime        @default(now())
+  posts                  Post[]
+  likes                  Like[]
+  comments               Comment[]
+  followers              Follower[]      @relation("UserFollowers")
+  following              Follower[]      @relation("UserFollowings")
+  followRequestsSent     FollowRequest[] @relation("FollowRequestsSend")
+  followRequestsReceived FollowRequest[] @relation("FollowRequestsReceived")
+  blocks                 Block[]         @relation("BlocksSent")
+  blocksBy               Block[]         @relation("BlocksReceived")
+  story                  Story[]
+}
+
+// 每个用户可以有多个帖子 一对多的关系
+model Post {
+  id       Int       @id @default(autoincrement())
+  desc     String
+  createAt DateTime  @default(now())
+  updateAt DateTime  @updatedAt
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  likes    Like[]
+  comments Comment[]
+}
+
+// 评论  一个用户有多个评论 一个帖子也有多个评论
+model Comment {
+  id       Int      @id @default(autoincrement())
+  desc     String
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId   Int
+  likes    Like[]
+}
+
+// 喜欢这个帖子 一个帖子有多个喜欢
+model Like {
+  id        Int      @id @default(autoincrement())
+  createAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int?
+  Comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int?
+}
+
+// 关注表 关注与被关注
+model Follower {
+  id          Int      @id @default(autoincrement())
+  createAt    DateTime @default(now())
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("UserFollowings", fields: [followingId], references: [id])
+  followingId String
+}
+
+model FollowRequest {
+  id         Int      @id @default(autoincrement())
+  createAt   DateTime @default(now())
+  sender     User     @relation("FollowRequestsSend", fields: [senderId], references: [id])
+  senderId   String
+  receiver   User     @relation("FollowRequestsReceived", fields: [receiverId], references: [id])
+  receiverId String
+
+  @@unique([senderId, receiverId])
+}
+
+model Block {
+  id        Int      @id @default(autoincrement())
+  createAt  DateTime @default(now())
+  blocker   User     @relation("BlocksSent", fields: [blockerId], references: [id])
+  blockerId String
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id])
+  blockedId String
+
+  @@unique([blockerId, blockedId])
+}
+
+// 一个用户只能创建一个story
+model Story {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+}
