@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import Comments from './Comments';
+import Comments from '../feed/Comments';
 export default function Post() {
   return (
     <>

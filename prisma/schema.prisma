@@ -42,6 +42,7 @@ model User {
 model Post {
   id       Int       @id @default(autoincrement())
   desc     String
+  img      String?
   createAt DateTime  @default(now())
   updateAt DateTime  @updatedAt
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)

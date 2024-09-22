@@ -1,7 +1,8 @@
-import ProfileCard from "./ProfileCard";
 import Link from "next/link";
 import Image from "next/image";
-import Ad from "./Ad";
+import ProfileCard from "./ProfileCard";
+import Ad from "../Ad";
+
 export default function LeftMenu({ type }: { type: 'home' | 'profile' }) {
   return (
     <>

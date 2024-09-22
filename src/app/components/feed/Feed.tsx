@@ -1,5 +1,4 @@
 import Post from "./Post";
-
 export default function Feed() {
   return (
     <>
@@ -10,7 +9,6 @@ export default function Feed() {
         <Post></Post>
         <Post></Post>
         <Post></Post>
-
       </div>
     </>
   )
