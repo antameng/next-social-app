@@ -1,7 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
 import { User } from "@prisma/client";
-export default function UserMediaCard({ user }: { user: User }) {
+import prisma from "@/lib/client";
+export default async function UserMediaCard({ user }: { user: User }) {
+
+  const postsWithMedia = await prisma.post.findMany({
+    where: {
+      userId: user.id,
+      img: {
+        not: null
+      }
+    },
+    take: 8,
+    orderBy: {
+      createAt: "desc"
+    }
+  })
+
   return <>
     <div className="">
       <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-4">
@@ -12,21 +27,11 @@ export default function UserMediaCard({ user }: { user: User }) {
         </div>
         {/* Bottom */}
         <div className="flex gap-4 justify-between flex-wrap">
-          <div className="relative w-1/5 h-24">
-            <Image src='https://images.pexels.com/photos/28055801/pexels-photo-28055801.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load' alt="" className="object-cover rounded-md" fill></Image>
-          </div>
-          <div className="relative w-1/5 h-24">
-            <Image src='https://images.pexels.com/photos/28055801/pexels-photo-28055801.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load' alt="" className="object-cover rounded-md" fill></Image>
-          </div>
-          <div className="relative w-1/5 h-24">
-            <Image src='https://images.pexels.com/photos/28055801/pexels-photo-28055801.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load' alt="" className="object-cover rounded-md" fill></Image>
-          </div>
-          <div className="relative w-1/5 h-24">
-            <Image src='https://images.pexels.com/photos/28055801/pexels-photo-28055801.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load' alt="" className="object-cover rounded-md" fill></Image>
-          </div>
-          <div className="relative w-1/5 h-24">
-            <Image src='https://images.pexels.com/photos/28055801/pexels-photo-28055801.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load' alt="" className="object-cover rounded-md" fill></Image>
-          </div>
+          {postsWithMedia.length ? postsWithMedia.map(post => {
+            return (<div key={post.id} className="relative w-1/5 h-24">
+              <Image src={post.img!} alt="" className="object-cover rounded-md" fill></Image>
+            </div>)
+          }) : 'No media found!'}
         </div>
       </div>
 
