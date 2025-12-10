@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server"
 import prisma from "./client"
 
 export const switchFollow = async (userId: string) => {
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
   if (!currentUserId) {
     throw new Error('User is not authenticated!')
   }
@@ -53,7 +53,7 @@ export const switchFollow = async (userId: string) => {
 }
 
 export const switchBlock = async (userId: string) => {
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
   if (!currentUserId) {
     throw new Error("User is not Authenticated")
   }
@@ -87,7 +87,7 @@ export const switchBlock = async (userId: string) => {
 }
 
 export const acceptFollowRequest = async (userId: string) => {
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
   if (!currentUserId) {
     throw new Error('User is not Authenticated!!')
   }
@@ -119,7 +119,7 @@ export const acceptFollowRequest = async (userId: string) => {
 }
 
 export const declineFollowRequest = async (userId: string) => {
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
   if (!currentUserId) {
     throw new Error('User is not Authenticated!!')
   }

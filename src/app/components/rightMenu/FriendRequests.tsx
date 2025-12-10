@@ -5,7 +5,7 @@ import prisma from "@/lib/client";
 import FriendRequestsList from "./FriendRequestList";
 export default async function FriendRequests() {
 
-  const { userId } = auth()
+  const { userId } = await auth()
   if (!userId) {
     return null
   }

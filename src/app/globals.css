@@ -2,13 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-// 针对基于WebKit的浏览器引擎（如Chrome、Safari等）的。
-.scrollbar-hide::-webkit-scrollbar{  
+/* 针对基于WebKit的浏览器引擎（如Chrome、Safari等）的。 */
+.scrollbar-hide::-webkit-scrollbar{
   display:none
 }
 
-// 针对基于Gecko的浏览器引擎（如Firefox）的。
+/* 针对基于Gecko的浏览器引擎（如Firefox）的。 */
 
-.scrollbar-hide{   
+.scrollbar-hide{
   scrollbar-width:none
 }

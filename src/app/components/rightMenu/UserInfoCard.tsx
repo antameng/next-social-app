@@ -17,7 +17,7 @@ export default async function UserInfoCard({ user }: { user: any }) {
   let isFollowing = false
   let isFollowingSent = false
 
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
   if (currentUserId) {
     const blockRes = await prisma.block.findFirst({
       where: {

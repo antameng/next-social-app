@@ -2,6 +2,9 @@ import Image from 'next/image';
 export default function Stories() {
   return (
     <>
+    <div>
+
+
       <div className="p-4 bg-white rounded-lg shadow-md overflow-scroll text-xs scrollbar-hide">
         <div className="flex gap-8 w-max">
           <div className="flex flex-col items-center gap-2 cursor-pointer">
@@ -37,6 +40,7 @@ export default function Stories() {
             <span className='font-medium'>kangkang</span>
           </div>
         </div>
+      </div>
       </div>
     </>
   )

@@ -7,10 +7,11 @@ import prisma from "@/lib/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-export default async function ProfilePage({ params }: { params: { username: string } }) {
+export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
   const user = await prisma.user.findUnique({
     where: {
-      username: params.username
+      username: username
     },
     include: {
       _count: {
@@ -24,7 +25,7 @@ export default async function ProfilePage({ params }: { params: { username: stri
   })
   if (!user) return notFound()
 
-  const { userId: currentUserId } = auth()
+  const { userId: currentUserId } = await auth()
 
   let isBlocked
   if (currentUserId) {

@@ -1,8 +1,8 @@
 import prisma from '@/lib/client';
 import { auth } from '@clerk/nextjs/server';
 import Image from 'next/image';
-export default function AddPost() {
-  const { userId } = auth()
+export default async function AddPost() {
+  const { userId } = await auth()
   const testAction = async (formData: FormData) => {
     "use server"
 
