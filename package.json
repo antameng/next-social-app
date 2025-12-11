@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.5.2",
+    "@clerk/nextjs": "^6.36.2",
     "@prisma/client": "5.19.1",
     "babel-plugin-react-compiler": "^0.0.0-experimental-938cd9a-20240601",
     "next": "^16.0.8",
