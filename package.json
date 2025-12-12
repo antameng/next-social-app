@@ -11,21 +11,21 @@
   "dependencies": {
     "@clerk/nextjs": "^6.36.2",
     "@prisma/client": "5.19.1",
-    "babel-plugin-react-compiler": "^0.0.0-experimental-938cd9a-20240601",
-    "next": "^16.0.8",
-    "prisma": "^5.19.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "svix": "^1.35.0"
+    "babel-plugin-react-compiler": "0.0.0-experimental-fe727a3-20250909",
+    "next": "^16.0.10",
+    "prisma": "^5.22.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "svix": "^1.82.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "^16.0.8",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "@types/node": "^20.19.26",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.10",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
   }
 }
