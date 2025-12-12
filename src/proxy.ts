@@ -3,6 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute = createRouteMatcher(['/settings(.*)', '/']);
 
 export default clerkMiddleware(async (auth, req) => {
+    // auth 为 Clerk 提供的认证对象 req为 Next.js 的请求对象
     if (isProtectedRoute(req)) {
         await auth.protect();
     }

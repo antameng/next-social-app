@@ -18,8 +18,8 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>
+      <html lang="en" suppressHydrationWarning>
+        <body className={inter.className} suppressHydrationWarning>
           <div className="w-full bg-white md:px-8 lg:px-16 xl:px-32 2xl:px-64">
             <Navbar></Navbar>
           </div>
