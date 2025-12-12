@@ -5,7 +5,7 @@ import 'dotenv/config'
 export default defineConfig({
   schema: path.join(__dirname, 'prisma', 'schema.prisma'),
   datasource: {
-    url: env('POSTGRES_PRISMA_URL'),
+    url: env('DATABASE_URL'),
     directUrl: env('DIRECT_URL'),
   },
 })
