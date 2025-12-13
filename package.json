@@ -16,10 +16,12 @@
     "babel-plugin-react-compiler": "0.0.0-experimental-fe727a3-20250909",
     "dotenv": "^17.2.3",
     "next": "^16.0.10",
+    "next-cloudinary": "^6.17.5",
     "pg": "^8.16.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "svix": "^1.82.0"
+    "svix": "^1.82.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/node": "^20.19.26",

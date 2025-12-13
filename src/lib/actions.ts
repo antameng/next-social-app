@@ -1,6 +1,7 @@
 "use server"
 import { auth } from "@clerk/nextjs/server"
 import prisma from "./client"
+import z from "zod"
 
 export const switchFollow = async (userId: string) => {
   const { userId: currentUserId } = await auth()
@@ -144,7 +145,42 @@ export const declineFollowRequest = async (userId: string) => {
 
 }
 
-export const updateProfile = async (formData: FormData) => {
+export const updateProfile = async (prevState:{success:boolean,error:boolean}, payload: {
+  formData: FormData,
+  cover: string
+}) => {
+  const { formData, cover } = payload
     const fileds = Object.fromEntries(formData)
-    console.log(fileds)
+
+    const filteredFields = Object.fromEntries(  // 过滤掉值为空的字段
+      Object.entries(fileds).filter(([_, value]) => value !== '')
+    )
+    const Profile = z.object({
+      name: z.string().max(30).optional(),  // optional 表示该字段可以不存在
+      surname: z.string().max(30).optional(),
+      description: z.string().max(100).optional(),
+      city: z.string().max(50).optional(),
+      school: z.string().max(50).optional(),
+      work: z.string().max(50).optional(),
+    })
+    const validatedFields = Profile.safeParse({cover, ...filteredFields})
+    if (!validatedFields.success) {
+      console.log(validatedFields.error.flatten().fieldErrors);
+      throw new Error('Invalid form data')
+    }
+    const { userId } = await auth()
+    if (!userId) {
+      throw new Error('User is not Authenticated')
+    }
+    try {
+      await prisma.user.update({
+        where: {
+          id: userId
+        },
+        data: validatedFields.data
+      })
+    } catch (error) {
+      console.log(error);
+      throw new Error('Something went wrong!')
+    }
 }
