@@ -2,10 +2,11 @@
 import { User } from "@clerk/nextjs/server"
 import Image from "next/image"
 import { useState } from "react"
+import {updateProfile} from "@/lib/actions";
 
 const UpdateUser = ({ user }: { user: any }) => {
 
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const handleClose = () => {
     setOpen(false)
   }
@@ -15,7 +16,7 @@ const UpdateUser = ({ user }: { user: any }) => {
         <span className="text-blue-500 text-xs cursor-pointer" onClick={() => setOpen(true)}></span>
         {open && (<div
           className="absolute w-screen h-screen top-0 left-0 bg-black bg-opacity-65 flex items-center justify-center z-50">
-          <form action=''
+          <form action={updateProfile}
             className="relative p-12 bg-white rounded-lg shadow-md flex-col gap-2 w-full md:w-1/2 xl:w-1/3">TEST
             <h1>Update Profile</h1>
             <div className="mt-4 text-xs text-gray-500">
@@ -31,37 +32,37 @@ const UpdateUser = ({ user }: { user: any }) => {
             <div className="flex flex-wrap justify-between gap-2 xl:gap-4">
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">First Name</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='name' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.name || 'No Name'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">Surename</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='surname' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.surname || 'No surname'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">Description</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='description' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.description || 'No description'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">City</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='city' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.ctiy || 'No City'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">School</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='school' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.school || 'No School'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">Work</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='work' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.work || 'No Work'} />
               </div>
               <div className="flex flex-col gap-4">
                 <label htmlFor="" className="text-xs text-gray-500">Website</label>
-                <input type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
+                <input name='website' type="text" className="border border-gray-300 rounded-md p-2 text-sm ring-1 ring-gray-300 p-[13px] rounded-md text-sm"
                   placeholder={user.website || 'No Website'} />
               </div>
             </div>

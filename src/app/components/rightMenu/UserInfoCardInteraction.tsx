@@ -55,12 +55,12 @@ const UserInfoCardInteraction = (
 
 
   return <>
-    <form action="follow">
+    <form action={follow}>
       <button className="w-full bg-blue-500 text-white text-sm rounded-md p-1">
         {optimisticState.following ? 'Following' : optimisticState.followingRequestSent ? 'Friend Request Sent' : 'Follow'}
       </button>
     </form>
-    <form action='block' className="self-end">
+    <form action={block} className="self-end">
       <button>
         <span className="text-red-400  text-xs cursor-pointer">
           {optimisticState.blocked ? 'Unblock User' : 'Block User'}

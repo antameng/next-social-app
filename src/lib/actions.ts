@@ -143,3 +143,8 @@ export const declineFollowRequest = async (userId: string) => {
   }
 
 }
+
+export const updateProfile = async (formData: FormData) => {
+    const fileds = Object.fromEntries(formData)
+    console.log(fileds)
+}
