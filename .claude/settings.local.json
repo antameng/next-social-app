@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(pnpm add:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm run build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
