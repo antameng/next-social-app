@@ -6,6 +6,6 @@ export default defineConfig({
   schema: path.join(__dirname, 'prisma', 'schema.prisma'),
   datasource: {
     url: env('DATABASE_URL'),
-    // shadowDatabaseUrl: env('DIRECT_URL'),
+    shadowDatabaseUrl: env('DIRECT_URL'),
   },
 })
