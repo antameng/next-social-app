@@ -2,6 +2,9 @@ import Image from 'next/image';
 import Comments from '../feed/Comments';
 import { User, Post as PostType } from '@prisma/client';
 import { PostInteraction } from "@/app/components/feed/PostInteraction";
+import { Suspense } from 'react';
+import { PostInfo } from './PostInfo';
+import { auth } from '@clerk/nextjs/server';
 
 type FeedPostType = PostType & {
   user: User,
@@ -12,7 +15,8 @@ type FeedPostType = PostType & {
     comments: number
   }
 }
-export default function Post({ post }: { post: FeedPostType }) {
+export default async function Post({ post }: { post: FeedPostType }) {
+  const { userId } = await auth();
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -23,8 +27,7 @@ export default function Post({ post }: { post: FeedPostType }) {
               width={40} height={40} alt='' className='w-10 h-10 rounded-full'></Image>
             <span className='font-medium'>{post.user.name && post.user.surname ? post.user.name + ' ' + post.user.username : post.user.username}</span>
           </div>
-          <Image src='/more.png'
-            width={16} height={16} alt=''></Image>
+          {userId === post.user.id && <PostInfo postId={post.id}></PostInfo>}
         </div>
         {/* Desc */}
         <div className="flex flex-col gap-4">
@@ -37,8 +40,16 @@ export default function Post({ post }: { post: FeedPostType }) {
           <p>{post.desc}</p>
         </div>
         {/* Interaction */}
-        <PostInteraction postId={post.id} likes={post.likes.map(like => like.userId)} commentNumber={post._count.comments}></PostInteraction>
-        <Comments postId={post.id}></Comments>
+        <Suspense fallback={<div>Loading...</div>}>
+          <PostInteraction
+            postId={post.id}
+            likes={post.likes.map(like => like.userId)}
+            commentNumber={post._count.comments}>
+          </PostInteraction>
+        </Suspense>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Comments postId={post.id}></Comments>
+        </Suspense>
       </div>
     </>
   )

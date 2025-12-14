@@ -281,6 +281,33 @@ export const addPost = async (formData: FormData, img: string) => {
   }
 }
 
+export const deletePost = async (postId: number) => {
+  const { userId } = await auth()
+  if (!userId) {
+    throw new Error('User is not Authenticated')
+  }
+  try {
+    const existingPost = await prisma.post.findFirst({
+      where: {
+        id: postId,
+        userId
+      }
+    })
+    if (!existingPost) {
+      throw new Error('Post not found or you are not authorized to delete it!')
+    }
+    await prisma.post.delete({
+      where: {
+        id: postId
+      }
+    })
+    revalidatePath('/'); // 通知Next.js重新验证该路径，更新缓存
+  } catch (error) {
+    console.log(error);
+    throw new Error('Something went wrong!')
+  }
+}
+
 export const addStory = async (img: string) => {
   const { userId } = await auth();
 

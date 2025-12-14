@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import prisma from "@/lib/client";
 import { auth } from '@clerk/nextjs/server';
-import { StoryList } from './storyList';
+import StoryList from './storyList';
 export default async function Stories() {
   const { userId: currentUserId } = await auth()
   if (!currentUserId) {
