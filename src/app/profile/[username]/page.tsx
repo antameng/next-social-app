@@ -73,7 +73,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               </div>
             </div>
           </div>
-          <Feed></Feed>
+          <Feed username={user.username}></Feed>
         </div>
       </div>
       <div className="hidden lg:block w-[30%]">

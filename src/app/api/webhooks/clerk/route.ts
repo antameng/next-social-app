@@ -62,7 +62,7 @@ export async function POST(req: Request) {
           id: evt.data.id,
           username: JSON.parse(body).data.username,
           avatar: JSON.parse(body).data.image_url || '/noAvator.png',
-          cover: '/noCover.pong'
+          cover: '/noCover.png'
         }
       })
       return new Response("用户创建成功", { status: 200 })
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
           id: evt.data.id,
           username: JSON.parse(body).data.username,
           avatar: JSON.parse(body).data.image_url || '/noAvator.png',
-          cover: '/noCover.pong'
+          cover: '/noCover.png'
         }
       })
       return new Response("用户更新成功", { status: 200 })

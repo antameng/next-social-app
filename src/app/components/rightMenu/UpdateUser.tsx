@@ -4,12 +4,17 @@ import Image from "next/image"
 import {useActionState, useState} from "react"
 import { updateProfile } from "@/lib/actions";
 import { CldUploadWidget } from "next-cloudinary";
+import { useRouter } from "next/navigation";
+import { UpdateButton } from "./UpdateButton";
 
 const UpdateUser = ({ user }: { user: any }) => {
 
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [cover, setCover] = useState<any>(false)
+
+  const router = useRouter();
   const handleClose = () => {
+    state.success && router.refresh();
     setOpen(false)
   }
   const [  state,formAction  ] = useActionState(updateProfile, {success:false,error:false})
@@ -19,7 +24,7 @@ const UpdateUser = ({ user }: { user: any }) => {
         <span className="text-blue-500 text-xs cursor-pointer" onClick={() => setOpen(true)}></span>
         {open && (<div
           className="absolute w-screen h-screen top-0 left-0 bg-black bg-opacity-65 flex items-center justify-center z-50">
-          <form action={(formData) => updateProfile(formData, cover?.secure_url)}
+          <form action={(formData) => formAction({formData, cover:cover?.secure_url||""})}
             className="relative p-12 bg-white rounded-lg shadow-md flex-col gap-2 w-full md:w-1/2 xl:w-1/3">TEST
             <h1>Update Profile</h1>
             <div className="mt-4 text-xs text-gray-500">
@@ -76,7 +81,7 @@ const UpdateUser = ({ user }: { user: any }) => {
                   placeholder={user.website || 'No Website'} />
               </div>
             </div>
-            <button className='bg-blue-500 p-2 mt-2 rounded-md text-white text-center w-full cursor-pointer'>Update</button>
+            <UpdateButton />
             {state.success && <span className="text-green-500 ">Profile updated successfully!</span>}
             {state.error && <span className="text-red-500 ">Error updating profile. Please try again.</span>}
             <div className='absolute text-xl right-2 top-3 cursor-pointer' onClick={handleClose}>X</div>

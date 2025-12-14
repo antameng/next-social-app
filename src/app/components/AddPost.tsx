@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import Image from 'next/image';
 export default async function AddPost() {
   const { userId } = await auth()
-  console.log(userId, 'userIdaddpost');
   const testAction = async (formData: FormData) => {
     "use server"
 
@@ -16,7 +15,6 @@ export default async function AddPost() {
           desc
         }
       })
-      console.log(res, 7777777);
 
     } catch (error) {
       console.log(error);

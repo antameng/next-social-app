@@ -1,7 +1,7 @@
 "use server"
 import { auth } from "@clerk/nextjs/server"
 import prisma from "./client"
-import z from "zod"
+import z, { success } from "zod"
 
 export const switchFollow = async (userId: string) => {
   const { userId: currentUserId } = await auth()
@@ -166,11 +166,13 @@ export const updateProfile = async (prevState:{success:boolean,error:boolean}, p
     const validatedFields = Profile.safeParse({cover, ...filteredFields})
     if (!validatedFields.success) {
       console.log(validatedFields.error.flatten().fieldErrors);
-      throw new Error('Invalid form data')
+      // throw new Error('Invalid form data')
+      return { success:false, error: true }
     }
     const { userId } = await auth()
     if (!userId) {
-      throw new Error('User is not Authenticated')
+      // throw new Error('User is not Authenticated')
+      return { success:false, error: true }
     }
     try {
       await prisma.user.update({
@@ -179,8 +181,10 @@ export const updateProfile = async (prevState:{success:boolean,error:boolean}, p
         },
         data: validatedFields.data
       })
+      return { success:true, error: false }
     } catch (error) {
       console.log(error);
-      throw new Error('Something went wrong!')
+      // throw new Error('Something went wrong!')
+      return { success:false, error: true }
     }
 }
