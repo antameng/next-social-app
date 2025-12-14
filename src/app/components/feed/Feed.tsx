@@ -44,10 +44,12 @@ export default async function Feed({ username }: { username?: string }) {
 
     const followingIds = following.map(f => f.followerId) // 我关注的人的ID数组
     console.log(following, 'following', followingIds);
+    const ids = [userId, ...followingIds] // 包括我自己的ID和我关注的人的ID
+    
     posts = await prisma.post.findMany({
       where: {
         userId: {
-          in: followingIds
+          in: ids
         }
       },
       include: {

@@ -2,6 +2,7 @@
 import { auth } from "@clerk/nextjs/server"
 import prisma from "./client"
 import z, { success } from "zod"
+import { revalidatePath } from "next/cache"
 
 export const switchFollow = async (userId: string) => {
   const { userId: currentUserId } = await auth()
@@ -243,4 +244,39 @@ export const addComment = async (postId: number, desc: string) => {
     console.log(error);
     throw new Error('Something went wrong!')
   }
-}        
+}
+
+export const addPost = async (formData: FormData, img: string) => {
+  const desc = formData.get('desc')
+  const Desc = z.string().min(1).max(500).optional() // desc 不可以为空字符串，但不能超过500字符
+  const { userId } = await auth()
+  const validatedDesc = Desc.safeParse(desc)
+  if (!userId) {
+    throw new Error('User is not Authenticated')
+  }
+  if (!validatedDesc.success) {
+    // throw new Error('Post description is invalid!')
+    console.log('Post description is invalid!');
+    return
+  }
+
+  if (!desc && !img) {
+    throw new Error('Post cannot be empty!')
+  }
+  const fileds = Object.fromEntries(formData)
+
+
+  try {
+    await prisma.post.create({
+      data: {
+        userId,
+        desc: validatedDesc.data as string,
+        img,
+      }
+    })
+    revalidatePath('/'); // 通知Next.js重新验证该路径，更新缓存
+  } catch (error) {
+    console.log(error);
+    throw new Error('Something went wrong!')
+  }
+}
