@@ -3,7 +3,7 @@ import Post from "./Post";
 import prisma from "@/lib/client";
 export default async function Feed({ username }: { username?: string }) {
 
-  const { userId } = auth()
+  const { userId } = await auth()
 
   let posts: any = []
 
@@ -28,7 +28,7 @@ export default async function Feed({ username }: { username?: string }) {
         }
       },
       orderBy: {
-        createAt: "desc"
+        createdAt: "desc"
       }
     })
   }

@@ -13,7 +13,7 @@ export default async function UserMediaCard({ user }: { user: User }) {
     },
     take: 8,
     orderBy: {
-      createAt: "desc"
+      createdAt: "desc"
     }
   })
 

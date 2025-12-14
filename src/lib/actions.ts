@@ -145,46 +145,102 @@ export const declineFollowRequest = async (userId: string) => {
 
 }
 
-export const updateProfile = async (prevState:{success:boolean,error:boolean}, payload: {
+export const updateProfile = async (prevState: { success: boolean, error: boolean }, payload: {
   formData: FormData,
   cover: string
 }) => {
   const { formData, cover } = payload
-    const fileds = Object.fromEntries(formData)
+  const fileds = Object.fromEntries(formData)
 
-    const filteredFields = Object.fromEntries(  // 过滤掉值为空的字段
-      Object.entries(fileds).filter(([_, value]) => value !== '')
-    )
-    const Profile = z.object({
-      name: z.string().max(30).optional(),  // optional 表示该字段可以不存在
-      surname: z.string().max(30).optional(),
-      description: z.string().max(100).optional(),
-      city: z.string().max(50).optional(),
-      school: z.string().max(50).optional(),
-      work: z.string().max(50).optional(),
+  const filteredFields = Object.fromEntries(  // 过滤掉值为空的字段
+    Object.entries(fileds).filter(([_, value]) => value !== '')
+  )
+  const Profile = z.object({
+    name: z.string().max(30).optional(),  // optional 表示该字段可以不存在
+    surname: z.string().max(30).optional(),
+    description: z.string().max(100).optional(),
+    city: z.string().max(50).optional(),
+    school: z.string().max(50).optional(),
+    work: z.string().max(50).optional(),
+  })
+  const validatedFields = Profile.safeParse({ cover, ...filteredFields })
+  if (!validatedFields.success) {
+    console.log(validatedFields.error.flatten().fieldErrors);
+    // throw new Error('Invalid form data')
+    return { success: false, error: true }
+  }
+  const { userId } = await auth()
+  if (!userId) {
+    // throw new Error('User is not Authenticated')
+    return { success: false, error: true }
+  }
+  try {
+    await prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: validatedFields.data
     })
-    const validatedFields = Profile.safeParse({cover, ...filteredFields})
-    if (!validatedFields.success) {
-      console.log(validatedFields.error.flatten().fieldErrors);
-      // throw new Error('Invalid form data')
-      return { success:false, error: true }
-    }
-    const { userId } = await auth()
-    if (!userId) {
-      // throw new Error('User is not Authenticated')
-      return { success:false, error: true }
-    }
-    try {
-      await prisma.user.update({
-        where: {
-          id: userId
-        },
-        data: validatedFields.data
-      })
-      return { success:true, error: false }
-    } catch (error) {
-      console.log(error);
-      // throw new Error('Something went wrong!')
-      return { success:false, error: true }
-    }
+    return { success: true, error: false }
+  } catch (error) {
+    console.log(error);
+    // throw new Error('Something went wrong!')
+    return { success: false, error: true }
+  }
 }
+
+export const switchLike = async (postId: number) => {
+  const { userId } = await auth()
+  if (!userId) {
+    throw new Error('User is not Authenticated')
+  }
+  try {
+    const existingLike = await prisma.like.findFirst({  // 查找当前用户是否已经点赞该帖子
+      where: {
+        postId,
+        userId
+      }
+    })
+    if (existingLike) {
+      await prisma.like.delete({  // 取消点赞 删除点赞记录
+        where: {
+          id: existingLike.id
+        }
+      })
+    } else {
+      await prisma.like.create({
+        data: {
+          postId,
+          userId
+        }
+      })
+    }
+  } catch (error) {
+    console.log(error);
+    throw new Error('Something went wrong!')
+  }
+}
+
+
+export const addComment = async (postId: number, desc: string) => {
+  const { userId } = await auth()
+  if (!userId) {
+    throw new Error('User is not Authenticated')
+  }
+  try {
+    const createdComment = await prisma.comment.create({
+      data: {
+        postId,
+        userId,
+        desc
+      },
+      include: {  // 创建评论的同时，包含用户信息
+        user: true
+      }
+    })
+    return createdComment  // 返回创建的评论对象
+  } catch (error) {
+    console.log(error);
+    throw new Error('Something went wrong!')
+  }
+}        

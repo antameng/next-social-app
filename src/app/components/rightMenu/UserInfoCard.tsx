@@ -6,8 +6,8 @@ import prisma from "@/lib/client";
 import UserInfoCardInteraction from "./UserInfoCardInteraction";
 import UpdateUser from "./UpdateUser";
 export default async function UserInfoCard({ user }: { user: any }) {
-  const createAtDate = new Date(user.createAt)
-  const formattedDate = createAtDate.toLocaleDateString('en-Us', {
+  const createdAtDate = new Date(user.createdAt)
+  const formattedDate = createdAtDate.toLocaleDateString('en-Us', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'

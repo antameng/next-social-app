@@ -24,7 +24,7 @@ model User {
   school                 String?
   work                   String?
   website                String?
-  createAt               DateTime        @default(now())
+  createdAt               DateTime        @default(now())
   posts                  Post[]
   likes                  Like[]
   comments               Comment[]
@@ -42,8 +42,8 @@ model Post {
   id       Int       @id @default(autoincrement())
   desc     String
   img      String?
-  createAt DateTime  @default(now())
-  updateAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   String
   likes    Like[]
@@ -54,8 +54,8 @@ model Post {
 model Comment {
   id       Int      @id @default(autoincrement())
   desc     String
-  createAt DateTime @default(now())
-  updateAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   String
   post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -66,7 +66,7 @@ model Comment {
 // 喜欢这个帖子 一个帖子有多个喜欢
 model Like {
   id        Int      @id @default(autoincrement())
-  createAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -78,7 +78,7 @@ model Like {
 // 关注表 关注与被关注
 model Follower {
   id          Int      @id @default(autoincrement())
-  createAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
   follower    User     @relation("UserFollowers", fields: [followerId], references: [id])
   followerId  String
   following   User     @relation("UserFollowings", fields: [followingId], references: [id])
@@ -87,7 +87,7 @@ model Follower {
 
 model FollowRequest {
   id         Int      @id @default(autoincrement())
-  createAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
   sender     User     @relation("FollowRequestsSend", fields: [senderId], references: [id])
   senderId   String
   receiver   User     @relation("FollowRequestsReceived", fields: [receiverId], references: [id])
@@ -99,7 +99,7 @@ model FollowRequest {
 // 拉黑
 model Block {
   id        Int      @id @default(autoincrement())
-  createAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
   blocker   User     @relation("BlocksSent", fields: [blockerId], references: [id])
   blockerId String
   blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id])
