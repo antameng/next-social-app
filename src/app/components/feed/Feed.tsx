@@ -5,7 +5,7 @@ export default async function Feed({ username }: { username?: string }) {
 
   const { userId } = auth()
 
-  let posts
+  let posts: any = []
 
   if (username) {
     posts = await prisma.post.findMany({
@@ -41,18 +41,39 @@ export default async function Feed({ username }: { username?: string }) {
         followerId: true
       }
     })
-    console.log(following)
+
+    const followingIds = following.map(f => f.followerId) // 我关注的人的ID数组
+    console.log(following, 'following', followingIds);
+    posts = await prisma.post.findMany({
+      where: {
+        userId: {
+          in: followingIds
+        }
+      },
+      include: {
+        user: true,
+        likes: {
+          select: {
+            userId: true
+          }
+        },
+        _count: {
+          select: {
+            comments: true,
+          }
+        }
+      },
+    })
   }
 
   return (
     <>
       <div className="p-4 bg-white rounded-lg shadow-md flex flex-col gap-12">
-        <Post></Post>
-        <Post></Post>
-        <Post></Post>
-        <Post></Post>
-        <Post></Post>
-        <Post></Post>
+
+        {posts?.length ? (posts.map((post: any) => {
+          return <Post key={post.id} post={post}></Post>
+        })) : 'No posts found!'}
+
       </div>
     </>
   )
