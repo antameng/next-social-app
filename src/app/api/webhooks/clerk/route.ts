@@ -4,7 +4,6 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import prisma from '@/lib/client'
 
 export async function POST(req: Request) {
-  // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
 
   if (!WEBHOOK_SECRET) {
@@ -24,9 +23,9 @@ export async function POST(req: Request) {
     })
   }
 
-  // Get the body
-  const payload = await req.json()
-  const body = JSON.stringify(payload)
+  // --------------- 修复点 1：必须使用 text() 获取原始 Body ---------------
+  const body = await req.text() 
+  // ---------------------------------------------------------------------
 
   // Create a new Svix instance with your secret.
   const wh = new Webhook(WEBHOOK_SECRET)
@@ -35,6 +34,7 @@ export async function POST(req: Request) {
 
   // Verify the payload with the headers
   try {
+    // 传入原始的 body 字符串进行验证
     evt = wh.verify(body, {
       'svix-id': svix_id,
       'svix-timestamp': svix_timestamp,
@@ -47,28 +47,29 @@ export async function POST(req: Request) {
     })
   }
 
-  // Do something with the payload
-  // For this guide, you simply log the payload to the console
+  // Get the ID and type
   const { id } = evt.data
   const eventType = evt.type
-  console.log('登录信息');
+  
+  console.log(`Webhook with an ID of ${id} and type of ${eventType}`)
 
-  console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
-  console.log('Webhook body:', body)
+  // --------------- 修复点 2：直接使用 evt.data，不需要再次 JSON.parse ---------------
+  
   if (eventType === 'user.created') {
     try {
       await prisma.user.create({
         data: {
-          id: evt.data.id,
-          username: JSON.parse(body).data.username,
-          avatar: JSON.parse(body).data.image_url || '/noAvator.png',
+          id: evt.data.id as string,
+          // Clerk 的 WebhookEvent 类型有时候推断不出来具体字段，可以使用 'as any' 或者具体类型断言
+          username: (evt.data as any).username || `user_${id}`, 
+          avatar: (evt.data as any).image_url || '/noAvator.png',
           cover: '/noCover.png'
         }
       })
       return new Response("用户创建成功", { status: 200 })
 
     } catch (error) {
-      console.log(error);
+      console.log('创建用户出错:', error);
       return new Response("创建用户失败", { status: 500 })
     }
   }
@@ -77,23 +78,22 @@ export async function POST(req: Request) {
     try {
       await prisma.user.update({
         where: {
-          id: evt.data.id
+          id: evt.data.id as string
         },
         data: {
-          id: evt.data.id,
-          username: JSON.parse(body).data.username,
-          avatar: JSON.parse(body).data.image_url || '/noAvator.png',
+          username: (evt.data as any).username,
+          avatar: (evt.data as any).image_url || '/noAvator.png',
           cover: '/noCover.png'
         }
       })
       return new Response("用户更新成功", { status: 200 })
 
     } catch (error) {
-      console.log(error);
+      console.log('更新用户出错:', error);
+      // 注意：如果用户 ID 不存在，update 会报错，这里 500 是合理的
       return new Response("更新用户失败", { status: 500 })
     }
   }
-
 
   return new Response('webhook received', { status: 200 })
 }
