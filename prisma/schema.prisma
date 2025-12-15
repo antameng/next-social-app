@@ -83,6 +83,8 @@ model Follower {
   followerId  String
   following   User     @relation("UserFollowings", fields: [followingId], references: [id])
   followingId String
+
+  @@unique([followerId, followingId])
 }
 
 model FollowRequest {

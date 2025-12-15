@@ -9,44 +9,121 @@ export const switchFollow = async (userId: string) => {
   if (!currentUserId) {
     throw new Error('User is not authenticated!')
   }
+  if (currentUserId === userId) {
+    throw new Error("You can't follow yourself!")
+  }
   try {
-    const existingFollow = await prisma.follower.findFirst({
-      where: {
-        followerId: currentUserId,
-        followingId: userId
-      }
-    })
-
-    if (existingFollow) {
-      await prisma.follower.delete({
+    return await prisma.$transaction(async (tx) => {
+      const existingFollow = await tx.follower.findFirst({
         where: {
-          id: existingFollow.id
-        }
+          followerId: currentUserId,
+          followingId: userId,
+        },
       })
-    } else {
-      const existingFollowRequest = await prisma.followRequest.findFirst({
+
+      if (existingFollow) {
+        const reciprocalFollow = await tx.follower.findFirst({
+          where: {
+            followerId: userId,
+            followingId: currentUserId,
+          },
+        })
+
+        if (reciprocalFollow) {
+          await tx.follower.deleteMany({
+            where: {
+              id: { in: [existingFollow.id, reciprocalFollow.id] },
+            },
+          })
+        } else {
+          await tx.follower.delete({
+            where: {
+              id: existingFollow.id,
+            },
+          })
+        }
+
+        await tx.followRequest.deleteMany({
+          where: {
+            OR: [
+              { senderId: currentUserId, receiverId: userId },
+              { senderId: userId, receiverId: currentUserId },
+            ],
+          },
+        })
+
+        return { following: false, followingRequestSent: false }
+      }
+
+      const incomingRequest = await tx.followRequest.findFirst({
+        where: {
+          senderId: userId,
+          receiverId: currentUserId,
+        },
+      })
+
+      if (incomingRequest) {
+        await tx.followRequest.delete({
+          where: {
+            id: incomingRequest.id,
+          },
+        })
+
+        await tx.followRequest.deleteMany({
+          where: {
+            senderId: currentUserId,
+            receiverId: userId,
+          },
+        })
+
+        const [aFollowsB, bFollowsA] = await Promise.all([
+          tx.follower.findFirst({
+            where: { followerId: currentUserId, followingId: userId },
+          }),
+          tx.follower.findFirst({
+            where: { followerId: userId, followingId: currentUserId },
+          }),
+        ])
+
+        if (!aFollowsB) {
+          await tx.follower.create({
+            data: { followerId: currentUserId, followingId: userId },
+          })
+        }
+        if (!bFollowsA) {
+          await tx.follower.create({
+            data: { followerId: userId, followingId: currentUserId },
+          })
+        }
+
+        return { following: true, followingRequestSent: false }
+      }
+
+      const existingFollowRequest = await tx.followRequest.findFirst({
         where: {
           senderId: currentUserId,
-          receiverId: userId
-        }
+          receiverId: userId,
+        },
       })
 
       if (existingFollowRequest) {
-        await prisma.followRequest.delete({
+        await tx.followRequest.delete({
           where: {
-            id: existingFollowRequest.id
-          }
+            id: existingFollowRequest.id,
+          },
         })
-      } else {
-        await prisma.followRequest.create({
-          data: {
-            senderId: currentUserId,
-            receiverId: userId
-          }
-        })
+        return { following: false, followingRequestSent: false }
       }
 
-    }
+      await tx.followRequest.create({
+        data: {
+          senderId: currentUserId,
+          receiverId: userId,
+        },
+      })
+
+      return { following: false, followingRequestSent: true }
+    })
   } catch (error) {
     console.log(error);
     throw new Error('Something went wrong!')
@@ -94,25 +171,60 @@ export const acceptFollowRequest = async (userId: string) => {
     throw new Error('User is not Authenticated!!')
   }
   try {
-    const existingFollowRequest = await prisma.followRequest.findFirst({
-      where: {
-        senderId: userId,
-        receiverId: currentUserId
-      }
-    })
-    if (existingFollowRequest) {
-      await prisma.followRequest.delete({
+    return await prisma.$transaction(async (tx) => {
+      const existingFollowRequest = await tx.followRequest.findFirst({
         where: {
-          id: existingFollowRequest.id
-        }
+          senderId: userId,
+          receiverId: currentUserId,
+        },
       })
-      await prisma.follower.create({
-        data: {
-          followerId: userId,
-          followingId: currentUserId
-        }
+
+      if (!existingFollowRequest) {
+        return false
+      }
+
+      await tx.followRequest.delete({
+        where: {
+          id: existingFollowRequest.id,
+        },
       })
-    }
+
+      await tx.followRequest.deleteMany({
+        where: {
+          senderId: currentUserId,
+          receiverId: userId,
+        },
+      })
+
+      const [aFollowsB, bFollowsA] = await Promise.all([
+        tx.follower.findFirst({
+          where: { followerId: userId, followingId: currentUserId },
+        }),
+        tx.follower.findFirst({
+          where: { followerId: currentUserId, followingId: userId },
+        }),
+      ])
+
+      if (!aFollowsB) {
+        await tx.follower.create({
+          data: {
+            followerId: userId,
+            followingId: currentUserId,
+          },
+        })
+      }
+
+      if (!bFollowsA) {
+        await tx.follower.create({
+          data: {
+            followerId: currentUserId,
+            followingId: userId,
+          },
+        })
+      }
+
+      return true
+    })
   } catch (error) {
     console.log(error);
     throw new Error('Something went wrong!')

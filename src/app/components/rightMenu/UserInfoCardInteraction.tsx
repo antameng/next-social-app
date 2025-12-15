@@ -14,14 +14,19 @@ const UserInfoCardInteraction = (
     followingRequestSent: isFollowingSent,
   })
 
-  const [optimisticState, switchOptimisticState] = useOptimistic(userState, (state, value: 'follow' | 'block') => value === 'follow' ? {
-    ...state,
-    following: state.following && false,
-    followingRequestSent: !state.following && !state.followingRequestSent ? true : false
-  } : {
-    ...state,
-    blocked: !state.blocked
-  })
+  const [optimisticState, switchOptimisticState] = useOptimistic(
+    userState,
+    (state, value: 'follow' | 'block') => value === 'follow'
+      ? {
+        ...state,
+        following: false,
+        followingRequestSent: state.following || state.followingRequestSent ? false : true,
+      }
+      : {
+        ...state,
+        blocked: !state.blocked
+      }
+  )
 
   const block = async () => {
     switchOptimisticState('block')
@@ -40,12 +45,11 @@ const UserInfoCardInteraction = (
   const follow = async () => {
     switchOptimisticState('follow')
     try {
-      await switchFollow(userId)
+      const nextState = await switchFollow(userId)
       setUserState(prev => ({
         ...prev,
-        following: prev.following && false,
-        followingRequestSent:
-          !prev.following && !prev.followingRequestSent ? true : false
+        following: nextState.following,
+        followingRequestSent: nextState.followingRequestSent,
       }))
     } catch (error) {
 
@@ -57,7 +61,7 @@ const UserInfoCardInteraction = (
   return <>
     <form action={follow}>
       <button className="w-full bg-blue-500 text-white text-sm rounded-md p-1">
-        {optimisticState.following ? 'Following' : optimisticState.followingRequestSent ? 'Friend Request Sent' : 'Follow'}
+        {optimisticState.following ? 'Friends' : optimisticState.followingRequestSent ? 'Friend Request Sent' : 'Add Friend'}
       </button>
     </form>
     <form action={block} className="self-end">
