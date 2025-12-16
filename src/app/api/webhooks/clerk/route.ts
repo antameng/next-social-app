@@ -3,6 +3,30 @@ import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import prisma from '@/lib/client'
 
+async function resolveUniqueUsername(desiredUsername: string, userId: string) {
+  const base = (desiredUsername || `user_${userId}`)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '_')
+
+  let candidate = base || `user_${userId}`
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const existing = await prisma.user.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    })
+
+    if (!existing || existing.id === userId) return candidate
+
+    candidate = `${base}_${attempt + 1}`
+  }
+
+  candidate = `${base}_${Math.random().toString(36).slice(2, 8)}`
+  return candidate
+}
+
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
 
@@ -57,14 +81,23 @@ export async function POST(req: Request) {
   
   if (eventType === 'user.created') {
     try {
-      await prisma.user.create({
-        data: {
-          id: evt.data.id as string,
-          // Clerk 的 WebhookEvent 类型有时候推断不出来具体字段，可以使用 'as any' 或者具体类型断言
-          username: (evt.data as any).username || `user_${id}`, 
-          avatar: (evt.data as any).image_url || '/noAvator.png',
-          cover: '/noCover.png'
-        }
+      const clerkUserId = evt.data.id as string
+      const desiredUsername = (evt.data as any).username || `user_${clerkUserId}`
+      const username = await resolveUniqueUsername(desiredUsername, clerkUserId)
+
+      await prisma.user.upsert({
+        where: { id: clerkUserId },
+        create: {
+          id: clerkUserId,
+          username,
+          avatar: (evt.data as any).image_url || '/noAvatar.png',
+          cover: '/noCover.png',
+        },
+        update: {
+          username,
+          avatar: (evt.data as any).image_url || '/noAvatar.png',
+          cover: '/noCover.png',
+        },
       })
       return new Response("用户创建成功", { status: 200 })
 
@@ -76,15 +109,23 @@ export async function POST(req: Request) {
 
   if (eventType === 'user.updated') {
     try {
-      await prisma.user.update({
-        where: {
-          id: evt.data.id as string
+      const clerkUserId = evt.data.id as string
+      const desiredUsername = (evt.data as any).username || `user_${clerkUserId}`
+      const username = await resolveUniqueUsername(desiredUsername, clerkUserId)
+
+      await prisma.user.upsert({
+        where: { id: clerkUserId },
+        create: {
+          id: clerkUserId,
+          username,
+          avatar: (evt.data as any).image_url || '/noAvatar.png',
+          cover: '/noCover.png',
         },
-        data: {
-          username: (evt.data as any).username,
-          avatar: (evt.data as any).image_url || '/noAvator.png',
-          cover: '/noCover.png'
-        }
+        update: {
+          username,
+          avatar: (evt.data as any).image_url || '/noAvatar.png',
+          cover: '/noCover.png',
+        },
       })
       return new Response("用户更新成功", { status: 200 })
 
