@@ -12,88 +12,381 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id          String   @id
-  username    String   @unique
-  avatar      String?
-  cover       String?
-  name        String?
-  surname     String?
-  description String?
-  city        String?
-  school      String?
-  work        String?
-  website     String?
-  createdAt   DateTime @default(now())
+// ============================================
+// 1. 用户认证与档案 (User System)
+// ============================================
 
-  // 帖子和评论
+// 用户表
+model User {
+  id       String  @id @default(cuid())
+  username String  @unique // 用户名 @handle
+  email    String? @unique // 邮箱
+  phone    String? @unique // 手机号
+  password String? // 密码（第三方登录可为空）
+
+  // 个人资料
+  avatar   String? // 头像
+  cover    String? // 封面图
+  name     String? // 昵称
+  bio      String? // 个人简介
+  website  String? // 个人网站
+  location String? // 所在地
+  birthday DateTime? // 生日
+
+  // 账号设置
+  isPrivate  Boolean    @default(false) // 是否私密账号
+  isVerified Boolean    @default(false) // 是否认证用户
+  role       UserRole   @default(USER) // 用户角色
+  status     UserStatus @default(ACTIVE) // 账号状态
+
+  // 统计计数（冗余字段，提升查询性能）
+  postCount      Int @default(0) // 帖子数
+  followerCount  Int @default(0) // 粉丝数
+  followingCount Int @default(0) // 关注数
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ===== 关联关系 =====
+
+  // 第三方登录
+  accounts Account[]
+
+  // 内容相关
   posts    Post[]
   comments Comment[]
 
-  // 点赞
+  // 互动相关
   postLikes    PostLike[]
   commentLikes CommentLike[]
+  bookmarks    Bookmark[]
+  reposts      Repost[]
 
-  // 分享
-  shares Share[]
+  // 社交关系
+  followers    Follow[] @relation("UserFollowers")
+  following    Follow[] @relation("UserFollowing")
+  blockedUsers Block[]  @relation("BlocksSent")
+  blockedBy    Block[]  @relation("BlocksReceived")
+  mutedUsers   Mute[]   @relation("MutesSent")
+  mutedBy      Mute[]   @relation("MutesReceived")
 
-  // 被回复
-  repliedComments Comment[] @relation("ReplyToUser")
-
-  // 关注
-  followers              Follower[]      @relation("UserFollowers")
-  following              Follower[]      @relation("UserFollowings")
-  followRequestsSent     FollowRequest[] @relation("FollowRequestsSend")
+  // 关注请求（私密账号）
+  followRequestsSent     FollowRequest[] @relation("FollowRequestsSent")
   followRequestsReceived FollowRequest[] @relation("FollowRequestsReceived")
 
-  // 拉黑
-  blocks   Block[] @relation("BlocksSent")
-  blocksBy Block[] @relation("BlocksReceived")
+  // 消息相关
+  conversationsInitiated Conversation[] @relation("ConversationInitiator")
+  conversationsReceived  Conversation[] @relation("ConversationReceiver")
+  messagesSent           Message[]
+
+  // 通知相关
+  notifications     Notification[] @relation("NotificationReceiver")
+  notificationsSent Notification[] @relation("NotificationSender")
+
+  // 举报相关
+  reportsSent     Report[] @relation("ReportsSent")
+  reportsReceived Report[] @relation("ReportsReceived")
 
   // Story
-  story Story[]
-}
+  stories    Story[]
+  storyViews StoryView[]
 
-// 帖子表
-model Post {
-  id        Int      @id @default(autoincrement())
-  desc      String
-  img       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // 被回复/被提及
+  mentionedInPosts    PostMention[]
+  mentionedInComments CommentMention[]
+  repliedComments     Comment[]        @relation("ReplyToUser")
 
-  // 作者
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  // 关联
-  comments Comment[]
-  likes    PostLike[]
-  shares   Share[]
-
-  // 计数（用于性能优化，避免每次count查询）
-  likeCount    Int @default(0)
-  commentCount Int @default(0)
-  shareCount   Int @default(0)
-
-  @@index([userId])
+  @@index([username])
+  @@index([email])
   @@index([createdAt])
 }
 
-// 评论表 - 支持无限层级嵌套
-model Comment {
-  id        Int      @id @default(autoincrement())
-  desc      String
+// 用户角色枚举
+enum UserRole {
+  USER // 普通用户
+  MODERATOR // 版主/内容审核员
+  ADMIN // 管理员
+  SUPER_ADMIN // 超级管理员
+}
+
+// 用户状态枚举
+enum UserStatus {
+  ACTIVE // 正常
+  SUSPENDED // 暂停（临时封禁）
+  BANNED // 永久封禁
+  DEACTIVATED // 用户主动注销
+}
+
+// 第三方登录账号表
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String // google, github, wechat 等
+  providerAccountId String // 第三方平台的用户ID
+  accessToken       String? @db.Text
+  refreshToken      String? @db.Text
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 评论者
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// ============================================
+// 2. 社交关系 (Social Graph)
+// ============================================
+
+// 关注表
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  String // 关注者
+  followingId String // 被关注者
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// 关注请求表（私密账号需要审批）
+model FollowRequest {
+  id         Int                 @id @default(autoincrement())
+  senderId   String
+  receiverId String
+  status     FollowRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  sender   User @relation("FollowRequestsSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FollowRequestsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+}
+
+enum FollowRequestStatus {
+  PENDING // 待处理
+  ACCEPTED // 已接受
+  REJECTED // 已拒绝
+}
+
+// 拉黑表
+model Block {
+  id        Int      @id @default(autoincrement())
+  blockerId String // 拉黑者
+  blockedId String // 被拉黑者
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlocksSent", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+// 静音/屏蔽表（不取关，但不看对方内容）
+model Mute {
+  id        Int      @id @default(autoincrement())
+  muterId   String // 屏蔽者
+  mutedId   String // 被屏蔽者
+  createdAt DateTime @default(now())
+
+  muter User @relation("MutesSent", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("MutesReceived", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+  @@index([muterId])
+}
+
+// ============================================
+// 3. 内容创作 (Content Creation)
+// ============================================
+
+// 帖子/动态表
+model Post {
+  id      Int    @id @default(autoincrement())
+  content String @db.Text // 文本内容
+
+  // 作者
   userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 帖子类型
+  type PostType @default(ORIGINAL) // 原创/转发/引用
+
+  // 转发相关
+  originalPostId Int? // 原帖ID（转发时）
+  originalPost   Post?  @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
+  reposts        Post[] @relation("PostReposts")
+
+  // 可见性
+  visibility PostVisibility @default(PUBLIC)
+
+  // 状态
+  status PostStatus @default(PUBLISHED)
+
+  // 统计计数
+  likeCount     Int @default(0)
+  commentCount  Int @default(0)
+  repostCount   Int @default(0)
+  shareCount    Int @default(0)
+  viewCount     Int @default(0)
+  bookmarkCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ===== 关联关系 =====
+  medias      PostMedia[] // 媒体文件
+  hashtags    PostHashtag[] // 话题标签
+  mentions    PostMention[] // @提及
+  linkPreview LinkPreview? // 链接预览
+
+  likes         PostLike[]
+  comments      Comment[]
+  bookmarks     Bookmark[]
+  repostRecords Repost[]
+
+  // 举报
+  reports Report[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+  @@index([originalPostId])
+}
+
+// 帖子类型枚举
+enum PostType {
+  ORIGINAL // 原创
+  REPOST // 转发（不带评论）
+  QUOTE // 引用（带评论的转发）
+}
+
+// 帖子可见性枚举
+enum PostVisibility {
+  PUBLIC // 公开
+  FOLLOWERS // 仅关注者可见
+  PRIVATE // 仅自己可见
+}
+
+// 帖子状态枚举
+enum PostStatus {
+  DRAFT // 草稿
+  PUBLISHED // 已发布
+  HIDDEN // 被隐藏（违规）
+  DELETED // 已删除
+}
+
+// 帖子媒体文件表（图片、视频、GIF）
+model PostMedia {
+  id        Int       @id @default(autoincrement())
+  postId    Int
+  url       String // 文件URL
+  type      MediaType // 媒体类型
+  width     Int? // 宽度
+  height    Int? // 高度
+  duration  Int? // 视频时长（秒）
+  thumbnail String? // 缩略图URL
+  order     Int       @default(0) // 排序
+
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+// 媒体类型枚举
+enum MediaType {
+  IMAGE
+  VIDEO
+  GIF
+}
+
+// 话题/标签表
+model Hashtag {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique // 话题名称（不含#）
+  postCount Int     @default(0) // 使用次数
+  isHot     Boolean @default(false) // 是否热门
+  isBanned  Boolean @default(false) // 是否被禁用
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts PostHashtag[]
+
+  @@index([name])
+  @@index([postCount])
+}
+
+// 帖子-话题关联表
+model PostHashtag {
+  postId    Int
+  hashtagId Int
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@index([hashtagId])
+}
+
+// 帖子@提及表
+model PostMention {
+  id              Int    @id @default(autoincrement())
+  postId          Int
+  mentionedUserId String
+
+  post          Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mentionedUser User @relation(fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mentionedUserId])
+  @@index([mentionedUserId])
+}
+
+// 链接预览表（Open Graph）
+model LinkPreview {
+  id          Int     @id @default(autoincrement())
+  postId      Int     @unique
+  url         String // 原始链接
+  title       String? // 标题
+  description String? @db.Text // 描述
+  image       String? // 预览图
+  siteName    String? // 网站名称
+
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// 4. 评论系统 (Comments)
+// ============================================
+
+// 评论表 - 支持无限层级嵌套
+model Comment {
+  id      Int    @id @default(autoincrement())
+  content String @db.Text
+
+  // 评论者
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 所属帖子
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   // 父评论（直接上级）
   parentId Int?
@@ -109,105 +402,396 @@ model Comment {
   replyToUserId String?
   replyToUser   User?   @relation("ReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
 
-  // 点赞
-  likes     CommentLike[]
-  likeCount Int           @default(0)
+  // 状态
+  status CommentStatus @default(VISIBLE)
+
+  // 统计
+  likeCount  Int @default(0)
+  replyCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  likes    CommentLike[]
+  mentions CommentMention[]
+  reports  Report[]
 
   @@index([postId])
   @@index([parentId])
   @@index([rootId])
   @@index([userId])
+  @@index([createdAt])
 }
+
+// 评论状态枚举
+enum CommentStatus {
+  VISIBLE // 可见
+  HIDDEN // 被隐藏（违规）
+  DELETED // 已删除
+}
+
+// 评论@提及表
+model CommentMention {
+  id              Int    @id @default(autoincrement())
+  commentId       Int
+  mentionedUserId String
+
+  comment       Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  mentionedUser User    @relation(fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, mentionedUserId])
+  @@index([mentionedUserId])
+}
+
+// ============================================
+// 5. 互动体系 (Interactions)
+// ============================================
 
 // 帖子点赞表
 model PostLike {
   id        Int      @id @default(autoincrement())
+  userId    String
+  postId    Int
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([postId])
+  @@index([userId])
 }
 
 // 评论点赞表
 model CommentLike {
   id        Int      @id @default(autoincrement())
+  userId    String
+  commentId Int
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  commentId Int
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
   @@index([commentId])
+  @@index([userId])
 }
 
-// 分享表
-model Share {
+// 转发记录表
+model Repost {
   id        Int      @id @default(autoincrement())
+  userId    String
+  postId    Int // 被转发的帖子
   createdAt DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId Int
-
-  platform String? // wechat / weibo / twitter / facebook / link
-
+  @@unique([userId, postId])
   @@index([postId])
   @@index([userId])
 }
 
-// 关注表
-model Follower {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  follower    User     @relation("UserFollowers", fields: [followerId], references: [id])
-  followerId  String
-  following   User     @relation("UserFollowings", fields: [followingId], references: [id])
-  followingId String
-
-  @@unique([followerId, followingId])
-}
-
-// 关注请求表
-model FollowRequest {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  sender     User     @relation("FollowRequestsSend", fields: [senderId], references: [id])
-  senderId   String
-  receiver   User     @relation("FollowRequestsReceived", fields: [receiverId], references: [id])
-  receiverId String
-
-  @@unique([senderId, receiverId])
-}
-
-// 拉黑表
-model Block {
+// 收藏表
+model Bookmark {
   id        Int      @id @default(autoincrement())
+  userId    String
+  postId    Int
   createdAt DateTime @default(now())
-  blocker   User     @relation("BlocksSent", fields: [blockerId], references: [id])
-  blockerId String
-  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id])
-  blockedId String
 
-  @@unique([blockerId, blockedId])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
 }
+
+// ============================================
+// 6. 消息与通知 (Notifications & Messaging)
+// ============================================
+
+// 通知表
+model Notification {
+  id         Int              @id @default(autoincrement())
+  receiverId String // 接收者
+  senderId   String? // 发送者（系统通知可为空）
+  type       NotificationType // 通知类型
+
+  // 关联内容ID（根据type不同，指向不同的内容）
+  postId    Int?
+  commentId Int?
+
+  content String? @db.Text // 通知内容（系统消息）
+  isRead  Boolean @default(false) // 是否已读
+
+  createdAt DateTime @default(now())
+
+  receiver User  @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender   User? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([receiverId, isRead])
+  @@index([receiverId, createdAt])
+  @@index([senderId])
+}
+
+// 通知类型枚举
+enum NotificationType {
+  // 互动通知
+  LIKE_POST // 点赞帖子
+  LIKE_COMMENT // 点赞评论
+  COMMENT // 评论帖子
+  REPLY // 回复评论
+  REPOST // 转发
+  QUOTE // 引用
+
+  // 社交通知
+  FOLLOW // 关注
+  FOLLOW_REQUEST // 关注请求
+  FOLLOW_ACCEPTED // 关注请求被接受
+
+  // 提及通知
+  MENTION_POST // 在帖子中被@
+  MENTION_COMMENT // 在评论中被@
+
+  // 系统通知
+  SYSTEM // 系统消息
+  WARNING // 警告（违规提醒）
+}
+
+// 私信会话表
+model Conversation {
+  id          Int    @id @default(autoincrement())
+  initiatorId String // 发起者
+  receiverId  String // 接收者
+
+  // 最后一条消息（冗余，提升列表查询性能）
+  lastMessageId Int?      @unique
+  lastMessageAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  initiator User @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  receiver  User @relation("ConversationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  @@unique([initiatorId, receiverId])
+  @@index([initiatorId, lastMessageAt])
+  @@index([receiverId, lastMessageAt])
+}
+
+// 私信消息表
+model Message {
+  id             Int    @id @default(autoincrement())
+  conversationId Int
+  senderId       String
+
+  content   String?    @db.Text // 文本内容
+  mediaUrl  String? // 媒体URL（图片）
+  mediaType MediaType? // 媒体类型
+
+  isRead    Boolean @default(false)
+  isDeleted Boolean @default(false) // 软删除
+
+  createdAt DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+// ============================================
+// 7. 搜索与发现 (Discovery)
+// ============================================
+
+// 热门话题表（可定时任务更新）
+model TrendingHashtag {
+  id          Int    @id @default(autoincrement())
+  hashtagId   Int    @unique
+  hashtagName String
+  postCount   Int // 时间段内的帖子数
+  rank        Int // 排名
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rank])
+}
+
+// 搜索历史表
+model SearchHistory {
+  id      Int        @id @default(autoincrement())
+  userId  String
+  keyword String
+  type    SearchType // 搜索类型
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// 搜索类型枚举
+enum SearchType {
+  USER
+  POST
+  HASHTAG
+}
+
+// ============================================
+// 8. Story 限时动态
+// ============================================
 
 // Story表
 model Story {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
+  userId    String
+  mediaUrl  String // 媒体URL
+  mediaType MediaType // 媒体类型
+
+  viewCount Int @default(0)
+
   createdAt DateTime @default(now())
-  img       String
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @unique
+  expiresAt DateTime // 过期时间（24小时后）
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views StoryView[]
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+// Story浏览记录表
+model StoryView {
+  id       Int    @id @default(autoincrement())
+  storyId  Int
+  viewerId String
+
+  createdAt DateTime @default(now())
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
+}
+
+// ============================================
+// 9. 后台管理与风控 (Admin & Safety)
+// ============================================
+
+// 举报表
+model Report {
+  id         Int    @id @default(autoincrement())
+  reporterId String // 举报者
+
+  // 被举报对象（三选一）
+  reportedUserId    String? // 被举报用户
+  reportedPostId    Int? // 被举报帖子
+  reportedCommentId Int? // 被举报评论
+
+  reason      ReportReason // 举报原因
+  description String?      @db.Text // 详细描述
+
+  status     ReportStatus @default(PENDING) // 处理状态
+  handledBy  String? // 处理人（管理员ID）
+  handledAt  DateTime? // 处理时间
+  handleNote String?      @db.Text // 处理备注
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reporter        User     @relation("ReportsSent", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser    User?    @relation("ReportsReceived", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  reportedPost    Post?    @relation(fields: [reportedPostId], references: [id], onDelete: SetNull)
+  reportedComment Comment? @relation(fields: [reportedCommentId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([createdAt])
+}
+
+// 举报原因枚举
+enum ReportReason {
+  SPAM // 垃圾信息
+  HARASSMENT // 骚扰
+  HATE_SPEECH // 仇恨言论
+  VIOLENCE // 暴力内容
+  NUDITY // 裸露/色情
+  FALSE_INFO // 虚假信息
+  SCAM // 诈骗
+  SELF_HARM // 自残/自杀
+  ILLEGAL // 违法内容
+  COPYRIGHT // 侵权
+  OTHER // 其他
+}
+
+// 举报状态枚举
+enum ReportStatus {
+  PENDING // 待处理
+  REVIEWING // 审核中
+  RESOLVED // 已处理
+  REJECTED // 已驳回（无效举报）
+}
+
+// 敏感词表
+model SensitiveWord {
+  id       Int     @id @default(autoincrement())
+  word     String  @unique
+  level    Int     @default(1) // 敏感等级 1-3
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([word])
+  @@index([isActive])
+}
+
+// 管理员操作日志表
+model AdminLog {
+  id         Int     @id @default(autoincrement())
+  adminId    String // 操作管理员ID
+  action     String // 操作类型
+  targetType String // 目标类型（user/post/comment等）
+  targetId   String // 目标ID
+  detail     String? @db.Text // 操作详情（JSON）
+  ip         String? // 操作IP
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// 用户封禁记录表
+model UserBan {
+  id      Int     @id @default(autoincrement())
+  userId  String
+  adminId String // 操作管理员
+  reason  String  @db.Text // 封禁原因
+  type    BanType // 封禁类型
+
+  startAt DateTime  @default(now()) // 开始时间
+  endAt   DateTime? // 结束时间（永久封禁为空）
+
+  isActive Boolean @default(true) // 是否生效中
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// 封禁类型枚举
+enum BanType {
+  TEMPORARY // 临时封禁
+  PERMANENT // 永久封禁
 }
