@@ -14,7 +14,7 @@ export const switchFollow = async (userId: string) => {
   }
   try {
     return await prisma.$transaction(async (tx) => {
-      const existingFollow = await tx.follower.findFirst({
+      const existingFollow = await tx.follow.findFirst({
         where: {
           followerId: currentUserId,
           followingId: userId,
@@ -22,7 +22,7 @@ export const switchFollow = async (userId: string) => {
       })
 
       if (existingFollow) {
-        const reciprocalFollow = await tx.follower.findFirst({
+        const reciprocalFollow = await tx.follow.findFirst({
           where: {
             followerId: userId,
             followingId: currentUserId,
@@ -31,7 +31,7 @@ export const switchFollow = async (userId: string) => {
 
         if (reciprocalFollow) {
           await Promise.all([
-            tx.follower.delete({
+            tx.follow.delete({
               where: {
                 followerId_followingId: {
                   followerId: currentUserId,
@@ -39,7 +39,7 @@ export const switchFollow = async (userId: string) => {
                 },
               },
             }),
-            tx.follower.delete({
+            tx.follow.delete({
               where: {
                 followerId_followingId: {
                   followerId: userId,
@@ -49,7 +49,7 @@ export const switchFollow = async (userId: string) => {
             }),
           ])
         } else {
-          await tx.follower.delete({
+          await tx.follow.delete({
             where: {
               followerId_followingId: {
                 followerId: currentUserId,
@@ -96,21 +96,21 @@ export const switchFollow = async (userId: string) => {
         })
 
         const [aFollowsB, bFollowsA] = await Promise.all([
-          tx.follower.findFirst({
+          tx.follow.findFirst({
             where: { followerId: currentUserId, followingId: userId },
           }),
-          tx.follower.findFirst({
+          tx.follow.findFirst({
             where: { followerId: userId, followingId: currentUserId },
           }),
         ])
 
         if (!aFollowsB) {
-          await tx.follower.create({
+          await tx.follow.create({
             data: { followerId: currentUserId, followingId: userId },
           })
         }
         if (!bFollowsA) {
-          await tx.follower.create({
+          await tx.follow.create({
             data: { followerId: userId, followingId: currentUserId },
           })
         }
@@ -225,16 +225,16 @@ export const acceptFollowRequest = async (userId: string) => {
       })
 
       const [aFollowsB, bFollowsA] = await Promise.all([
-        tx.follower.findFirst({
+        tx.follow.findFirst({
           where: { followerId: userId, followingId: currentUserId },
         }),
-        tx.follower.findFirst({
+        tx.follow.findFirst({
           where: { followerId: currentUserId, followingId: userId },
         }),
       ])
 
       if (!aFollowsB) {
-        await tx.follower.create({
+        await tx.follow.create({
           data: {
             followerId: userId,
             followingId: currentUserId,
@@ -243,7 +243,7 @@ export const acceptFollowRequest = async (userId: string) => {
       }
 
       if (!bFollowsA) {
-        await tx.follower.create({
+        await tx.follow.create({
           data: {
             followerId: currentUserId,
             followingId: userId,
@@ -339,20 +339,20 @@ export const switchLike = async (postId: number) => {
     throw new Error('User is not Authenticated')
   }
   try {
-    const existingLike = await prisma.like.findFirst({  // 查找当前用户是否已经点赞该帖子
+    const existingLike = await prisma.postLike.findFirst({  // 查找当前用户是否已经点赞该帖子
       where: {
         postId,
         userId
       }
     })
     if (existingLike) {
-      await prisma.like.delete({  // 取消点赞 删除点赞记录
+      await prisma.postLike.delete({  // 取消点赞 删除点赞记录
         where: {
           id: existingLike.id
         }
       })
     } else {
-      await prisma.like.create({
+      await prisma.postLike.create({
         data: {
           postId,
           userId
@@ -376,7 +376,7 @@ export const addComment = async (postId: number, desc: string) => {
       data: {
         postId,
         userId,
-        desc
+        content: desc
       },
       include: {  // 创建评论的同时，包含用户信息
         user: true
@@ -414,6 +414,7 @@ export const addPost = async (formData: FormData, img: string) => {
       data: {
         userId,
         desc: validatedDesc.data as string,
+        content: validatedDesc.data as string,
         img,
       }
     })
@@ -473,7 +474,9 @@ export const addStory = async (img: string) => {
     const createdStory = await prisma.story.create({
       data: {
         userId,
+        mediaUrl: img,
         img,
+        mediaType: 'IMAGE',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
       include: {

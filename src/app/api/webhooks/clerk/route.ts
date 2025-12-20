@@ -82,57 +82,84 @@ export async function POST(req: Request) {
   if (eventType === 'user.created') {
     try {
       const clerkUserId = evt.data.id as string
-      const desiredUsername = (evt.data as any).username || `user_${clerkUserId}`
+      const clerkData = evt.data as any
+
+      // 更健壮的 username 获取逻辑
+      const desiredUsername = clerkData.username?.trim() ||
+                              clerkData.first_name?.trim() ||
+                              clerkData.email_addresses?.[0]?.email_address?.split('@')[0] ||
+                              `user_${clerkUserId}`
+
       const username = await resolveUniqueUsername(desiredUsername, clerkUserId)
+
+      const userData = {
+        id: clerkUserId,
+        username,
+        name: clerkData.first_name || null,
+        surname: clerkData.last_name || null,
+        avatar: clerkData.image_url || '/noAvatar.png',
+        cover: '/noCover.png',
+      }
 
       await prisma.user.upsert({
         where: { id: clerkUserId },
-        create: {
-          id: clerkUserId,
-          username,
-          avatar: (evt.data as any).image_url || '/noAvatar.png',
-          cover: '/noCover.png',
-        },
-        update: {
-          username,
-          avatar: (evt.data as any).image_url || '/noAvatar.png',
-          cover: '/noCover.png',
-        },
+        create: userData,
+        update: userData,
       })
+
       return new Response("用户创建成功", { status: 200 })
 
     } catch (error) {
-      console.log('创建用户出错:', error);
-      return new Response("创建用户失败", { status: 500 })
+      console.error('创建用户出错:', error)
+      return new Response(JSON.stringify({
+        error: "创建用户失败",
+        message: error instanceof Error ? error.message : String(error)
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
   }
 
   if (eventType === 'user.updated') {
     try {
       const clerkUserId = evt.data.id as string
-      const desiredUsername = (evt.data as any).username || `user_${clerkUserId}`
+      const clerkData = evt.data as any
+
+      // 更健壮的 username 获取逻辑
+      const desiredUsername = clerkData.username?.trim() ||
+                              clerkData.first_name?.trim() ||
+                              clerkData.email_addresses?.[0]?.email_address?.split('@')[0] ||
+                              `user_${clerkUserId}`
+
       const username = await resolveUniqueUsername(desiredUsername, clerkUserId)
+
+      const userData = {
+        id: clerkUserId,
+        username,
+        name: clerkData.first_name || null,
+        surname: clerkData.last_name || null,
+        avatar: clerkData.image_url || '/noAvatar.png',
+        cover: '/noCover.png',
+      }
 
       await prisma.user.upsert({
         where: { id: clerkUserId },
-        create: {
-          id: clerkUserId,
-          username,
-          avatar: (evt.data as any).image_url || '/noAvatar.png',
-          cover: '/noCover.png',
-        },
-        update: {
-          username,
-          avatar: (evt.data as any).image_url || '/noAvatar.png',
-          cover: '/noCover.png',
-        },
+        create: userData,
+        update: userData,
       })
+
       return new Response("用户更新成功", { status: 200 })
 
     } catch (error) {
-      console.log('更新用户出错:', error);
-      // 注意：如果用户 ID 不存在，update 会报错，这里 500 是合理的
-      return new Response("更新用户失败", { status: 500 })
+      console.error('更新用户出错:', error)
+      return new Response(JSON.stringify({
+        error: "更新用户失败",
+        message: error instanceof Error ? error.message : String(error)
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
   }
 

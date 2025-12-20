@@ -7,7 +7,7 @@ export default async function ProfileCard() {
   const { userId } = await auth()
   if (!userId) return
 
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
@@ -36,7 +36,11 @@ export default async function ProfileCard() {
           />
         </div>
         <div className="h-20 flex flex-col gap-2 items-center">
-          <span className="font-semibold">{user.name && user.surname ? user.name + " " + user.surname : user.username}</span>
+          <span className="font-semibold">
+            {user.name && user.surname
+              ? `${user.name} ${user.surname}`
+              : user.name || user.username}
+          </span>
           <div className="flex items-center gap-4">
             <div className="flex">
               <Image

@@ -18,7 +18,7 @@ datasource db {
 
 // 用户表
 model User {
-  id       String  @id @default(cuid())
+  id       String  @id // 使用 Clerk 的 userId，不自动生成
   username String  @unique // 用户名 @handle
   email    String? @unique // 邮箱
   phone    String? @unique // 手机号
@@ -27,7 +27,8 @@ model User {
   // 个人资料
   avatar   String? // 头像
   cover    String? // 封面图
-  name     String? // 昵称
+  name     String? // 名字 (first name)
+  surname  String? // 姓氏 (last name)
   bio      String? // 个人简介
   website  String? // 个人网站
   location String? // 所在地
@@ -216,6 +217,10 @@ model Mute {
 model Post {
   id      Int    @id @default(autoincrement())
   content String @db.Text // 文本内容
+
+  // 向后兼容字段（旧代码使用）
+  desc String? @db.Text // 别名：content
+  img  String? // 简化的图片字段
 
   // 作者
   userId String
@@ -652,6 +657,9 @@ model Story {
   userId    String
   mediaUrl  String // 媒体URL
   mediaType MediaType // 媒体类型
+
+  // 向后兼容字段
+  img String? // 别名：mediaUrl
 
   viewCount Int @default(0)
 

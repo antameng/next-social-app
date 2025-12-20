@@ -27,7 +27,7 @@ export default async function UserInfoCard({ user }: { user: any }) {
     })
     blockRes ? (isUserBlocked = true) : (isUserBlocked = false)
 
-    const followRes = await prisma.follower.findFirst({
+    const followRes = await prisma.follow.findFirst({
       where: {
         followerId: currentUserId,
         followingId: user.id

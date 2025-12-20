@@ -25,24 +25,40 @@ const CommentList = ({ postId, comments }: { postId: number, comments: CommentWi
     // 创建一个临时的评论对象 用于乐观更新
     addOptimisticComments({
       id: Math.random(), // 临时ID
-      desc: desc,
+      content: desc,
       postId: postId,
       userId: user.id,
+      parentId: null,
+      rootId: null,
+      replyToUserId: null,
+      status: 'VISIBLE' as const,
+      likeCount: 0,
+      replyCount: 0,
       createdAt: new Date(Date.now()),
       updatedAt: new Date(Date.now()),
       user: {
         id: user.id,
-        avatar: user.imageUrl || '/noAvatar.png',
-        name: '',
         username: 'Sending Please wait...',
-        cover: '',
-        work: "",
-        city: '',
-        website: '',
-        school: '',
-        description: '',
+        email: null,
+        phone: null,
+        password: null,
+        avatar: user.imageUrl || '/noAvatar.png',
+        cover: '/noCover.png',
+        name: null,
+        surname: null,
+        bio: null,
+        website: null,
+        location: null,
+        birthday: null,
+        isPrivate: false,
+        isVerified: false,
+        role: 'USER' as const,
+        status: 'ACTIVE' as const,
+        postCount: 0,
+        followerCount: 0,
+        followingCount: 0,
         createdAt: new Date(Date.now()),
-        surname: ''
+        updatedAt: new Date(Date.now())
       }
     })
     try {
@@ -74,8 +90,8 @@ const CommentList = ({ postId, comments }: { postId: number, comments: CommentWi
           <Image className="w-10 h-10 rounded-full" alt='' width={40} height={40} src={comment.user.avatar || '/noAvatar.png'}></Image>
           {/* 描述 */}
           <div className="flex flex-1 flex-col gap-2">
-            <span className="font-medium">{comment.user.name && comment.user.username ? comment.user.name + ' ' + comment.user.username : comment.user.username}</span>
-            <p>{comment.desc}</p>
+            <span className="font-semibold">{comment.user.name && comment.user.surname ? comment.user.name + ' ' + comment.user.surname : comment.user.username}</span>
+            <p>{comment.content}</p>
             <div className="flex items-center gap-8 text-xs text-gray-500 mt-2">
               <div className="flex items-center gap-4">
                 <Image src='/like.png' alt=""
