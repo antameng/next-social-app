@@ -134,7 +134,8 @@ export async function POST(req: Request) {
 
       const username = await resolveUniqueUsername(desiredUsername, clerkUserId)
 
-      const userData = {
+      // create 时的完整数据（包含默认的 cover）
+      const createData = {
         id: clerkUserId,
         username,
         name: clerkData.first_name || null,
@@ -143,10 +144,19 @@ export async function POST(req: Request) {
         cover: '/noCover.png',
       }
 
+      // update 时只更新来自 Clerk 的字段，不覆盖用户自定义的 cover
+      const updateData = {
+        username,
+        name: clerkData.first_name || null,
+        surname: clerkData.last_name || null,
+        avatar: clerkData.image_url || '/noAvatar.png',
+        // 注意：不包含 cover，保留用户设置的封面图
+      }
+
       await prisma.user.upsert({
         where: { id: clerkUserId },
-        create: userData,
-        update: userData,
+        create: createData,
+        update: updateData,
       })
 
       return new Response("用户更新成功", { status: 200 })

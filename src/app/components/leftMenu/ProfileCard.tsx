@@ -19,7 +19,7 @@ export default async function ProfileCard() {
       },
     },
   })
-
+  console.log(user,22)
   if (!user) return null
 
   return (

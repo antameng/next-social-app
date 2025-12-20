@@ -306,6 +306,8 @@ export const updateProfile = async (prevState: { success: boolean, error: boolea
     city: z.string().max(50).optional(),
     school: z.string().max(50).optional(),
     work: z.string().max(50).optional(),
+    cover: z.string().optional(),  // 添加封面图字段
+    avatar: z.string().optional(),  // 添加头像字段
   })
   const validatedFields = Profile.safeParse({ cover, ...filteredFields })
   if (!validatedFields.success) {
