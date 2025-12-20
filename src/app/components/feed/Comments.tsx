@@ -1,6 +1,6 @@
 import prisma from "@/lib/client"
 import CommentList from "./CommentList";
-export default async function Comments({ postId }: { postId: number }) {
+export default async function Comments({ postId, onCommentAdded }: { postId: number, onCommentAdded?: () => void }) {
   const comments = await prisma.comment.findMany({
     where: {
       postId
@@ -13,7 +13,7 @@ export default async function Comments({ postId }: { postId: number }) {
   return <>
     <div className="">
       {/* write */}
-      <CommentList postId={postId} comments={comments}></CommentList>
+      <CommentList postId={postId} comments={comments} onCommentAdded={onCommentAdded}></CommentList>
     </div>
   </>
 }

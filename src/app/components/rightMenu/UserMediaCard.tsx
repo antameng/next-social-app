@@ -17,6 +17,9 @@ export default async function UserMediaCard({ user }: { user: User }) {
     }
   })
 
+  // Filter out posts with empty strings or null images
+  const validMediaPosts = postsWithMedia.filter(post => post.img && post.img.trim() !== "");
+
   return <>
     <div className="">
       <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-4">
@@ -27,7 +30,7 @@ export default async function UserMediaCard({ user }: { user: User }) {
         </div>
         {/* Bottom */}
         <div className="flex gap-4 justify-between flex-wrap">
-          {postsWithMedia.length ? postsWithMedia.map(post => {
+          {validMediaPosts.length ? validMediaPosts.map(post => {
             return (<div key={post.id} className="relative w-1/5 h-24">
               <Image src={post.img!} alt="" className="object-cover rounded-md" fill></Image>
             </div>)

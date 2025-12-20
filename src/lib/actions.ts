@@ -384,6 +384,17 @@ export const addComment = async (postId: number, desc: string) => {
         user: true
       }
     })
+
+    // Increment the comment count on the post
+    await prisma.post.update({
+      where: { id: postId },
+      data: {
+        commentCount: {
+          increment: 1
+        }
+      }
+    })
+
     return createdComment  // 返回创建的评论对象
   } catch (error) {
     console.log(error);

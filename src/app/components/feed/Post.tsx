@@ -1,10 +1,11 @@
 import Image from 'next/image';
-import Comments from '../feed/Comments';
 import { User, Post as PostType } from '@prisma/client';
 import { PostInteraction } from "@/app/components/feed/PostInteraction";
 import { Suspense } from 'react';
 import { PostInfo } from './PostInfo';
 import { auth } from '@clerk/nextjs/server';
+import { PostWithInteraction } from './PostWithInteraction';
+import prisma from "@/lib/client";
 
 type FeedPostType = PostType & {
   user: User,
@@ -17,6 +18,17 @@ type FeedPostType = PostType & {
 }
 export default async function Post({ post }: { post: FeedPostType }) {
   const { userId } = await auth();
+
+  // Fetch comments on the server
+  const comments = await prisma.comment.findMany({
+    where: {
+      postId: post.id
+    },
+    include: {
+      user: true
+    }
+  });
+
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -39,17 +51,13 @@ export default async function Post({ post }: { post: FeedPostType }) {
           </div>}
           <p>{post.desc}</p>
         </div>
-        {/* Interaction */}
-        <Suspense fallback={<div>Loading...</div>}>
-          <PostInteraction
-            postId={post.id}
-            likes={post.likes.map(like => like.userId)}
-            commentNumber={post._count.comments}>
-          </PostInteraction>
-        </Suspense>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Comments postId={post.id}></Comments>
-        </Suspense>
+        {/* Interaction and Comments - wrapped together */}
+        <PostWithInteraction
+          postId={post.id}
+          likes={post.likes.map(like => like.userId)}
+          commentNumber={post._count.comments}
+          initialComments={comments}
+        />
       </div>
     </>
   )

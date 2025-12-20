@@ -5,7 +5,7 @@ import { switchLike } from "@/lib/actions";
 import { useAuth } from "@clerk/nextjs";
 import Image from "next/image";
 import { useOptimistic, useState } from "react";
-export const PostInteraction = ({ postId, likes, commentNumber }: { postId: number, likes: string[], commentNumber: number }) => {
+export const PostInteraction = ({ postId, likes, commentNumber, onCommentAdded }: { postId: number, likes: string[], commentNumber: number, onCommentAdded?: () => void }) => {
 
   const { isLoaded, userId } = useAuth();
   const [likeState, setLikeState] = useState<any>({
@@ -32,7 +32,6 @@ export const PostInteraction = ({ postId, likes, commentNumber }: { postId: numb
     } catch (error) {
       throw new Error('Like action failed');
     }
-
   }
 
   return (
@@ -50,7 +49,7 @@ export const PostInteraction = ({ postId, likes, commentNumber }: { postId: numb
         <div className='flex items-center gap-4 bg-slate-50 p-2 rounded-xl'>
           <Image src='/comment.png' width={16} height={16} alt='' className='cursor-pointer'></Image>
           <span className='text-gray-300'>|</span>
-          <span className='text-gray-500'>{commentNumber}<span className='hidden md:inline'> Commnets</span></span>
+          <span className='text-gray-500'>{commentNumber}<span className='hidden md:inline'> Comments</span></span>
         </div>
       </div>
       <div className='flex gap-8'>

@@ -8,7 +8,7 @@ import { useOptimistic, useState } from "react"
 type CommentWithUser = Comment & {
   user: User
 }
-const CommentList = ({ postId, comments }: { postId: number, comments: CommentWithUser[] }) => {
+const CommentList = ({ postId, comments, onCommentAdded }: { postId: number, comments: CommentWithUser[], onCommentAdded?: () => void }) => {
 
   const { user } = useUser() // 获取当前登录用户信息
   const [commentState, setCommentState] = useState(comments); // 初始化评论状态
@@ -64,7 +64,18 @@ const CommentList = ({ postId, comments }: { postId: number, comments: CommentWi
     try {
       const createdComment = await addComment(postId, desc); // 调用后端函数添加评论
       setDesc(""); // 清空输入框
-      setCommentState((prev) => [createdComment, ...prev]); // 更新真实状态
+      // 更新真实状态，使用 Clerk 的最新头像覆盖数据库返回的头像
+      setCommentState((prev) => [{
+        ...createdComment,
+        user: {
+          ...createdComment.user,
+          avatar: user.imageUrl || createdComment.user.avatar
+        }
+      }, ...prev]);
+      // Call the callback to update the comment count
+      if (onCommentAdded) {
+        onCommentAdded();
+      }
     } catch (error) {
 
     }
@@ -78,7 +89,7 @@ const CommentList = ({ postId, comments }: { postId: number, comments: CommentWi
           src={user?.imageUrl || '/noAvatar.png'}
         ></Image>
         <form action={add} className="flex-1 flex items-center justify-between bg-slate-100 rounded-xl text-sm px-6 py-2 w-full">
-          <input onChange={(e) => setDesc(e.target.value)} type="text" placeholder="write a comment..." className="bg-transparent outline-none flex-1"></input>
+          <input onChange={(e) => setDesc(e.target.value)} value={desc} type="text" placeholder="write a comment..." className="bg-transparent outline-none flex-1"></input>
           <Image src='/emoji.png' className="cursor-pointer"
             alt="" width={16} height={16}></Image>
         </form>
