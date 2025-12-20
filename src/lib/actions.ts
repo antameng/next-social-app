@@ -30,15 +30,31 @@ export const switchFollow = async (userId: string) => {
         })
 
         if (reciprocalFollow) {
-          await tx.follower.deleteMany({
-            where: {
-              id: { in: [existingFollow.id, reciprocalFollow.id] },
-            },
-          })
+          await Promise.all([
+            tx.follower.delete({
+              where: {
+                followerId_followingId: {
+                  followerId: currentUserId,
+                  followingId: userId,
+                },
+              },
+            }),
+            tx.follower.delete({
+              where: {
+                followerId_followingId: {
+                  followerId: userId,
+                  followingId: currentUserId,
+                },
+              },
+            }),
+          ])
         } else {
           await tx.follower.delete({
             where: {
-              id: existingFollow.id,
+              followerId_followingId: {
+                followerId: currentUserId,
+                followingId: userId,
+              },
             },
           })
         }
@@ -65,7 +81,10 @@ export const switchFollow = async (userId: string) => {
       if (incomingRequest) {
         await tx.followRequest.delete({
           where: {
-            id: incomingRequest.id,
+            senderId_receiverId: {
+              senderId: userId,
+              receiverId: currentUserId,
+            },
           },
         })
 
@@ -109,7 +128,10 @@ export const switchFollow = async (userId: string) => {
       if (existingFollowRequest) {
         await tx.followRequest.delete({
           where: {
-            id: existingFollowRequest.id,
+            senderId_receiverId: {
+              senderId: currentUserId,
+              receiverId: userId,
+            },
           },
         })
         return { following: false, followingRequestSent: false }
@@ -147,8 +169,11 @@ export const switchBlock = async (userId: string) => {
     if (existBlock) {
       await prisma.block.delete({
         where: {
-          id: existBlock.id
-        }
+          blockerId_blockedId: {
+            blockerId: currentUserId,
+            blockedId: userId,
+          },
+        },
       })
     } else {
       await prisma.block.create({
@@ -185,7 +210,10 @@ export const acceptFollowRequest = async (userId: string) => {
 
       await tx.followRequest.delete({
         where: {
-          id: existingFollowRequest.id,
+          senderId_receiverId: {
+            senderId: userId,
+            receiverId: currentUserId,
+          },
         },
       })
 
@@ -247,8 +275,11 @@ export const declineFollowRequest = async (userId: string) => {
     if (existingFollowRequest) {
       await prisma.followRequest.delete({
         where: {
-          id: existingFollowRequest.id
-        }
+          senderId_receiverId: {
+            senderId: userId,
+            receiverId: currentUserId,
+          },
+        },
       })
     }
   } catch (error) {
