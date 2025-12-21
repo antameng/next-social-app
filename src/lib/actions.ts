@@ -368,7 +368,7 @@ export const switchLike = async (postId: number) => {
 }
 
 
-export const addComment = async (postId: number, desc: string) => {
+export const addComment = async (postId: number, desc: string, parentId?: number, replyToUserId?: string) => {
   const { userId } = await auth()
   if (!userId) {
     throw new Error('User is not Authenticated')
@@ -378,10 +378,14 @@ export const addComment = async (postId: number, desc: string) => {
       data: {
         postId,
         userId,
-        content: desc
+        content: desc,
+        parentId: parentId || null,
+        rootId: parentId ? (await prisma.comment.findUnique({ where: { id: parentId }, select: { rootId: true } }))?.rootId || parentId : null,
+        replyToUserId: replyToUserId || null,
       },
-      include: {  // 创建评论的同时，包含用户信息
-        user: true
+      include: {
+        user: true,
+        replyToUser: true,
       }
     })
 
@@ -395,7 +399,51 @@ export const addComment = async (postId: number, desc: string) => {
       }
     })
 
-    return createdComment  // 返回创建的评论对象
+    // If this is a reply, increment the parent comment's reply count
+    if (parentId) {
+      await prisma.comment.update({
+        where: { id: parentId },
+        data: {
+          replyCount: {
+            increment: 1
+          }
+        }
+      })
+    }
+
+    return createdComment
+  } catch (error) {
+    console.log(error);
+    throw new Error('Something went wrong!')
+  }
+}
+
+// Get replies for a specific comment with pagination
+export const getReplies = async (commentId: number, page: number = 1, limit: number = 9) => {
+  try {
+    const skip = (page - 1) * limit
+    const replies = await prisma.comment.findMany({
+      where: {
+        parentId: commentId,
+      },
+      include: {
+        user: true,
+        replyToUser: true,
+      },
+      orderBy: {
+        createdAt: 'asc'
+      },
+      skip,
+      take: limit,
+    })
+
+    const total = await prisma.comment.count({
+      where: {
+        parentId: commentId,
+      }
+    })
+
+    return { replies, total, hasMore: skip + limit < total }
   } catch (error) {
     console.log(error);
     throw new Error('Something went wrong!')

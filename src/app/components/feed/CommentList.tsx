@@ -4,9 +4,11 @@ import { useUser } from "@clerk/nextjs"
 import { User, Comment } from "@prisma/client"
 import Image from "next/image"
 import { useOptimistic, useState } from "react"
+import CommentItem from "./CommentItem"
 
 type CommentWithUser = Comment & {
   user: User
+  replyToUser?: User | null
 }
 const CommentList = ({ postId, comments, onCommentAdded }: { postId: number, comments: CommentWithUser[], onCommentAdded?: () => void }) => {
 
@@ -71,7 +73,7 @@ const CommentList = ({ postId, comments, onCommentAdded }: { postId: number, com
           ...createdComment.user,
           avatar: user.imageUrl || createdComment.user.avatar
         }
-      }, ...prev]);
+      } as CommentWithUser, ...prev]);
       // Call the callback to update the comment count
       if (onCommentAdded) {
         onCommentAdded();
@@ -96,29 +98,14 @@ const CommentList = ({ postId, comments, onCommentAdded }: { postId: number, com
       </div>)}
 
       <div className="">
-        {optimisticComments.map(comment => (<div key={comment.id} className="flex gap-4 justify-between mt-6">
-          {/* 头像 */}
-          <Image className="w-10 h-10 rounded-full" alt='' width={40} height={40} src={comment.user.avatar || '/noAvatar.png'}></Image>
-          {/* 描述 */}
-          <div className="flex flex-1 flex-col gap-2">
-            <span className="font-semibold">{comment.user.name && comment.user.surname ? comment.user.name + ' ' + comment.user.surname : comment.user.username}</span>
-            <p>{comment.content}</p>
-            <div className="flex items-center gap-8 text-xs text-gray-500 mt-2">
-              <div className="flex items-center gap-4">
-                <Image src='/like.png' alt=""
-                  width={12} height={12}
-                  className="cursor-pointer"
-                >
-                </Image>
-                <span className="text-gray-300">|</span>
-                <span className="text-gray-500">123 Likes</span>
-              </div>
-              <div className="">Reply</div>
-            </div>
-          </div>
-          {/* ICON */}
-          <Image src='/more.png' alt="" width={16} height={16} className="cursor-pointer w-4 h-4"></Image>
-        </div>))}
+        {optimisticComments.map(comment => (
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            postId={postId}
+            onCommentAdded={onCommentAdded}
+          />
+        ))}
       </div>
     </>
   );
