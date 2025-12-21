@@ -26,14 +26,19 @@ const StoryList = ({
   const add = async () => {
     if (!img?.secure_url) return;
 
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    // eslint-disable-next-line react-hooks/purity
+    const tempId = Math.random();
+
     addOptimisticStory({
-      id: Math.random(),
+      id: tempId,
       mediaUrl: img.secure_url,
       img: img.secure_url,
       mediaType: 'IMAGE' as const,
       viewCount: 0,
-      createdAt: new Date(Date.now()),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      createdAt: new Date(now),
+      expiresAt: new Date(now + 24 * 60 * 60 * 1000),
       userId: userId,
       user: {
         id: userId,
@@ -56,8 +61,8 @@ const StoryList = ({
         postCount: 0,
         followerCount: 0,
         followingCount: 0,
-        createdAt: new Date(Date.now()),
-        updatedAt: new Date(Date.now())
+        createdAt: new Date(now),
+        updatedAt: new Date(now)
       },
     });
 
@@ -93,11 +98,12 @@ const StoryList = ({
                 onClick={() => open()}
               />
               {img ? (
-                <form action={add}>
-                  <button className="text-xs bg-blue-500 p-1 rounded-md text-white">
-                    Send
-                  </button>
-                </form>
+                <button
+                  onClick={add}
+                  className="text-xs bg-blue-500 p-1 rounded-md text-white"
+                >
+                  Send
+                </button>
               ) : (
                 <span className="font-medium">Add a Story</span>
               )}

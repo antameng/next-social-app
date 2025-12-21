@@ -97,6 +97,7 @@ export async function POST(req: Request) {
         username,
         name: clerkData.first_name || null,
         surname: clerkData.last_name || null,
+        email: clerkData.email_addresses?.[0]?.email_address || null,
         avatar: clerkData.image_url || '/noAvatar.png',
         cover: '/noCover.png',
       }
@@ -140,6 +141,7 @@ export async function POST(req: Request) {
         username,
         name: clerkData.first_name || null,
         surname: clerkData.last_name || null,
+        email: clerkData.email_addresses?.[0]?.email_address || null,
         avatar: clerkData.image_url || '/noAvatar.png',
         cover: '/noCover.png',
       }
@@ -149,6 +151,7 @@ export async function POST(req: Request) {
         username,
         name: clerkData.first_name || null,
         surname: clerkData.last_name || null,
+        email: clerkData.email_addresses?.[0]?.email_address || null,
         avatar: clerkData.image_url || '/noAvatar.png',
         // 注意：不包含 cover，保留用户设置的封面图
       }
@@ -165,6 +168,33 @@ export async function POST(req: Request) {
       console.error('更新用户出错:', error)
       return new Response(JSON.stringify({
         error: "更新用户失败",
+        message: error instanceof Error ? error.message : String(error)
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+  }
+
+  if (eventType === 'user.deleted') {
+    try {
+      const clerkUserId = evt.data.id as string
+
+      // 软删除：更新用户状态为 DEACTIVATED
+      await prisma.user.update({
+        where: { id: clerkUserId },
+        data: {
+          status: 'DEACTIVATED',
+        },
+      })
+
+      console.log(`用户 ${clerkUserId} 已标记为 DEACTIVATED`)
+      return new Response("用户删除成功", { status: 200 })
+
+    } catch (error) {
+      console.error('删除用户出错:', error)
+      return new Response(JSON.stringify({
+        error: "删除用户失败",
         message: error instanceof Error ? error.message : String(error)
       }), {
         status: 500,
